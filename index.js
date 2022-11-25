@@ -22,6 +22,7 @@ async function run(){
         const categoriesCollection = client.db('bookBinDb').collection('categories')
         const productsCollection = client.db('bookBinDb').collection('products')
         const bookingsCollection = client.db('bookBinDb').collection('bookings')
+        const usersCollection = client.db('bookBinDb').collection('users')
 
         // --------------------------- categories -----------------------------------
         app.get('/categories', async(req, res) => {
@@ -49,6 +50,14 @@ async function run(){
         app.post('/bookings', async(req, res) => {
             const booking = req.body;
             const result = await bookingsCollection.insertOne(booking)
+            res.send(result)
+        })
+
+
+        // ------------------------- users -------------------------------------------
+        app.post('/users', async(req, res) => {
+            const user = req.body
+            const result = await usersCollection.insertOne(user)
             res.send(result)
         })
 
