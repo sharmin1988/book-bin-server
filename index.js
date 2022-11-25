@@ -20,12 +20,31 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run(){
     try{
         const categoriesCollection = client.db('bookBinDb').collection('categories')
+        const productsCollection = client.db('bookBinDb').collection('products')
 
+        // --------------------------- categories -----------------------------------
         app.get('/categories', async(req, res) => {
             const query = {}
             const categories = await categoriesCollection.find(query).toArray()
             res.send(categories)
         })
+
+        app.get('/categories/:id', async(req, res) => {
+            const id = req.params.id;
+            console.log(id)
+            const query = {categoryId: id}
+            const result = await productsCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        // --------------------------- products --------------------------------------
+        app.get('/products', async(req, res) => {
+            const query = {}
+            const products = await productsCollection.find(query).toArray()
+            res.send(products)
+        })
+
+        
 
     }
     finally{
