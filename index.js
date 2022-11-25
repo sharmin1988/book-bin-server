@@ -25,7 +25,7 @@ function verifyToken(req, res, next) {
         return res.status(401).send({ message: 'unauthorized access' })
     }
     const token = authHeader.split(' ')[1]
-    jwt.verify(token, process.env.ACESS_TOKEN, function (err, decoded) {
+    jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
         if (err) {
             return res.status(401).send({ message: 'unauthorized access' })
         }
@@ -41,7 +41,7 @@ async function run() {
         const bookingsCollection = client.db('bookBinDb').collection('bookings')
         const usersCollection = client.db('bookBinDb').collection('users')
 
-        // ================== jwt ====================
+        // ======== jwt ==========
         app.get('/jwt', async (req, res) => {
             const email = req.query.email
             const query = { email: email }
@@ -76,6 +76,26 @@ async function run() {
         })
 
         //---------------------------- bookings -------------------------------------
+        app.get('/bookings', verifyToken, async (req, res) => {
+            const email = req.query.email;
+            const decodedEmail = req.decoded.email;
+            if (decodedEmail !== email) {
+                return res.status(403).send({ message: 'Forbidden access!!!' })
+            }
+
+            const query = { email: email }
+            const user = await usersCollection.findOne(query)
+            console.log(user)
+
+            if(user?.role !== 'buyer'){
+                return res.status(403).send({ message: 'Forbidden access!!! u are not a buyer' })
+            }
+            const result = await bookingsCollection.find(query).toArray()
+            // console.log(result)
+            res.send(result)
+
+        })
+
         app.post('/bookings', async (req, res) => {
             const booking = req.body;
             const result = await bookingsCollection.insertOne(booking)
@@ -84,6 +104,16 @@ async function run() {
 
 
         // ------------------------- users -------------------------------------------
+
+        // api for check admin
+        app.get('/users/admin/:email', async (req, res) => {
+            const email = req.params.email
+            const query = { email: email }
+            const user = await usersCollection.findOne(query)
+            res.send({ isAdmin: user?.role === 'admin' })
+
+        })
+
         app.post('/users', async (req, res) => {
             const user = req.body
             const result = await usersCollection.insertOne(user)
