@@ -103,7 +103,7 @@ async function run() {
         })
 
 
-        // ------------------------- users -------------------------------------------
+        // ------------------------- Users -------------------------------------------
 
         // api for check admin
         app.get('/users/admin/:email', async (req, res) => {
@@ -112,6 +112,14 @@ async function run() {
             const user = await usersCollection.findOne(query)
             res.send({ isAdmin: user?.role === 'admin' })
 
+        })
+
+        // api for check seller
+        app.get('/users/seller/:email', async(req, res) => {
+            const email = req.params.email;
+            const query = {email: email}
+            const seller = await usersCollection.findOne(query)
+            res.send({isSeller: seller?.role === 'seller'})
         })
 
         app.post('/users', async (req, res) => {
