@@ -18,7 +18,8 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 // console.log(uri)
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
-// JWT verification function
+
+//================== JWT verification function ===============================
 function verifyToken(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
@@ -36,6 +37,7 @@ function verifyToken(req, res, next) {
 
 async function run() {
     try {
+        // All collections
         const categoriesCollection = client.db('bookBinDb').collection('categories')
         const productsCollection = client.db('bookBinDb').collection('products')
         const bookingsCollection = client.db('bookBinDb').collection('bookings')
@@ -68,11 +70,17 @@ async function run() {
             res.send(result)
         })
 
-        // ---------------------------all products --------------------------------------
+        // --------------------------- products --------------------------------------
         app.get('/products', async (req, res) => {
             const query = {}
             const products = await productsCollection.find(query).toArray()
             res.send(products)
+        })
+
+        app.post('/products', async(req, res) => {
+            const product = req.body
+            const result = await productsCollection.insertOne(product)
+            res.send(result)
         })
 
         //---------------------------- bookings -------------------------------------
