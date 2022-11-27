@@ -5,6 +5,7 @@ require('dotenv').config()
 const jwt = require('jsonwebtoken')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // Middle ware
 app.use(express.json())
@@ -15,7 +16,6 @@ app.get('/', (req, res) => {
 })
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ex1o8oo.mongodb.net/?retryWrites=true&w=majority`;
-
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 
@@ -42,6 +42,26 @@ async function run() {
         const productsCollection = client.db('bookBinDb').collection('products')
         const bookingsCollection = client.db('bookBinDb').collection('bookings')
         const usersCollection = client.db('bookBinDb').collection('users')
+        const paymentsCollection = client.db('bookBinDb').collection('payments')
+
+
+        //================ API for Stripe payments =====================
+        app.post('/create-payment-intent', async (req, res) => {
+            const booking = req.body;
+            const price = booking.resalePrice;
+            const amount = price * 100;
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                currency: 'usd',
+                amount: amount,
+                "payment_method_types": [
+                    "card"
+                ],
+            })
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        })
 
         // ======== jwt ==========
         app.get('/jwt', async (req, res) => {
@@ -54,6 +74,8 @@ async function run() {
             }
             return res.status(403).send({ access_token: '' })
         })
+
+
 
         // ========= admin check middleware =========
         const verifyAdmin = async (req, res, next) => {
@@ -87,6 +109,8 @@ async function run() {
             next()
         }
 
+
+
         // --------------------------- categories -----------------------------------
         app.get('/categories', async (req, res) => {
             const query = {}
@@ -108,6 +132,9 @@ async function run() {
             const result = await productsCollection.find(query).toArray()
             res.send(result)
         })
+
+
+
 
         // --------------------------- products --------------------------------------
         app.get('/allProducts', async (req, res) => {
@@ -149,6 +176,9 @@ async function run() {
             res.send(result)
         })
 
+
+
+
         //---------------------------- bookings -------------------------------------
         app.get('/bookings', verifyToken, verifyBuyer, async (req, res) => {
             const email = req.query.email;
@@ -162,6 +192,8 @@ async function run() {
             const result = await bookingsCollection.insertOne(booking)
             res.send(result)
         })
+
+
 
 
         // api for check admin
@@ -190,20 +222,22 @@ async function run() {
         })
 
 
-        // ------------------------- Users -------------------------------------------
 
+
+
+        // ------------------------- Users -------------------------------------------
         app.post('/users', async (req, res) => {
             const user = req.body
             const result = await usersCollection.insertOne(user)
             res.send(result)
         })
 
-        app.put('/users/:id', async(req, res) => {
+        app.put('/users/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: ObjectId(id)}
+            const query = { _id: ObjectId(id) }
             const user = await usersCollection.findOne(query)
 
-            const filter = {email:user?.email}
+            const filter = { email: user?.email }
             const options = { upsert: true };
             const updateDoc = {
                 $set: {
@@ -211,7 +245,7 @@ async function run() {
                 },
             };
             const updateResult = await productsCollection.updateMany(filter, updateDoc, options)
-            res.send(updateResult) 
+            res.send(updateResult)
         })
 
         app.put('/users/seller/:id', async (req, res) => {
@@ -227,20 +261,65 @@ async function run() {
             res.send(updateResult)
         })
 
-        app.delete('/users/:id', async(req, res) => {
+        app.delete('/users/:id', async (req, res) => {
             const id = req.params.id
-            const query = {_id: ObjectId(id)}
+            const query = { _id: ObjectId(id) }
             const result = await usersCollection.deleteOne(query)
             res.send(result)
         })
 
+
+
         //------------- All sellers api
-        app.get('/admin/allSellers/:email', async(req, res) => {
-            const query = {role: 'seller'}
+        app.get('/admin/allSellers/:email', async (req, res) => {
+            const query = { role: 'seller' }
             const allSellers = await usersCollection.find(query).toArray()
             res.send(allSellers)
         })
+        //------------- All buyers api
+        app.get('/admin/allBuyers/:email', async (req, res) => {
+            const query = { role: 'buyer' }
+            const allBuyers = await usersCollection.find(query).toArray()
+            res.send(allBuyers)
+        })
 
+
+        // -------------------- payments -------------------
+        app.get('/dashboard/payment/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const booking = await bookingsCollection.findOne(query)
+            res.send(booking)
+        })
+
+        app.post('/payments', async (req, res) => {
+            const payment = req.body;
+            const result = await paymentsCollection.insertOne(payment)
+            const id = payment.bookingId;
+            const filter = { _id: ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            }
+            const updatedResult = await bookingsCollection.updateOne(filter, updatedDoc)
+            res.send(result)
+        })
+
+        app.put('/payments/:id', async(req, res) => {
+            const id = req.params.id
+            console.log(id)
+            const filter = {_id: ObjectId(id)}
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    isSold: true
+                },
+            };
+            const updateResult = await productsCollection.updateOne(filter, updateDoc, options)
+            res.send(updateResult)
+        })
 
     }
     finally {
