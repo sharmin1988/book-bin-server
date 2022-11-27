@@ -102,7 +102,7 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/categories/allProducts/:id',  async (req, res) => {
+        app.get('/categories/allProducts/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const query = { categoryId: id }
             const result = await productsCollection.find(query).toArray()
@@ -164,7 +164,6 @@ async function run() {
         })
 
 
-        // ------------------------- Users -------------------------------------------
         // api for check admin
         app.get('/users/admin/:email', async (req, res) => {
             const email = req.params.email
@@ -190,12 +189,57 @@ async function run() {
             res.send({ isSeller: seller?.role === 'buyer' })
         })
 
+
+        // ------------------------- Users -------------------------------------------
+
         app.post('/users', async (req, res) => {
             const user = req.body
             const result = await usersCollection.insertOne(user)
             res.send(result)
         })
 
+        app.put('/users/:id', async(req, res) => {
+            const id = req.params.id;
+            const query = {_id: ObjectId(id)}
+            const user = await usersCollection.findOne(query)
+
+            const filter = {email:user?.email}
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    sellerVerified: true
+                },
+            };
+            const updateResult = await productsCollection.updateMany(filter, updateDoc, options)
+            res.send(updateResult) 
+        })
+
+        app.put('/users/seller/:id', async (req, res) => {
+            const id = req.params.id
+            const filter = { _id: ObjectId(id) }
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    isVerified: true
+                },
+            };
+            const updateResult = await usersCollection.updateOne(filter, updateDoc, options)
+            res.send(updateResult)
+        })
+
+        app.delete('/users/:id', async(req, res) => {
+            const id = req.params.id
+            const query = {_id: ObjectId(id)}
+            const result = await usersCollection.deleteOne(query)
+            res.send(result)
+        })
+
+        //------------- All sellers api
+        app.get('/admin/allSellers/:email', async(req, res) => {
+            const query = {role: 'seller'}
+            const allSellers = await usersCollection.find(query).toArray()
+            res.send(allSellers)
+        })
 
 
     }
