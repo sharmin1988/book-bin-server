@@ -150,7 +150,6 @@ async function run() {
         // a singel category
         app.get('/categories/:id', async (req, res) => {
             const id = req.params.id;
-            // console.log(id)
             const query = { categoryId: id }
             const result = await categoriesCollection.findOne(query)
             res.send(result)
@@ -168,7 +167,7 @@ async function run() {
 
 
         // --------------------------- products --------------------------------------
-        app.get('/allProducts', verifyToken, async (req, res) => {
+        app.get('/allProducts', async (req, res) => {
             const query = {}
             const products = await productsCollection.find(query).toArray()
             res.send(products)
@@ -252,7 +251,6 @@ async function run() {
             const id = req.params.id;
             const query = { productId: id }
             const reportProducts = await reportProductsCollection.findOne(query)
-            console.log('r product in report collection', reportProducts)
             if (reportProducts) {
                 const filter = { _id: ObjectId(reportProducts._id) }
                 const result = await reportProductsCollection.deleteOne(filter)
@@ -266,7 +264,6 @@ async function run() {
             const id = req.params.id;
             const query = { productId: id }
             const reportProductInBookings = await bookingsCollection.findOne(query)
-            console.log('r product in report collection', reportProductInBookings)
             if (reportProductInBookings) {
                 const filter = { _id: ObjectId(reportProductInBookings._id) }
                 const result = await bookingsCollection.deleteOne(filter)
@@ -352,7 +349,7 @@ async function run() {
 
 
         // -------------------- payments -------------------
-        app.get('/dashboard/payment/:id',verifyToken, async (req, res) => {
+        app.get('/dashboard/payment/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) }
             const booking = await bookingsCollection.findOne(query)
@@ -376,7 +373,6 @@ async function run() {
 
         app.put('/payments/:id', verifyToken, async (req, res) => {
             const id = req.params.id
-            console.log(id)
             const filter = { _id: ObjectId(id) }
             const options = { upsert: true };
             const updateDoc = {
