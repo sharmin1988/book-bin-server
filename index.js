@@ -43,6 +43,7 @@ async function run() {
         const bookingsCollection = client.db('bookBinDb').collection('bookings')
         const usersCollection = client.db('bookBinDb').collection('users')
         const paymentsCollection = client.db('bookBinDb').collection('payments')
+        const reportProductsCollection = client.db('bookBinDb').collection('reportProducts')
 
 
         //================ API for Stripe payments =====================
@@ -195,7 +196,7 @@ async function run() {
 
 
 
-
+        // --------------------- different role check -------------
         // api for check admin
         app.get('/users/admin/:email', async (req, res) => {
             const email = req.params.email
@@ -226,6 +227,14 @@ async function run() {
 
 
         // ------------------------- Users -------------------------------------------
+
+        app.get('/users/:email', async(req, res) => {
+            const email = req.params.email;
+            const query = {email:email}
+            const user = await usersCollection.findOne(query)
+            res.send(user)
+        })
+
         app.post('/users', async (req, res) => {
             const user = req.body
             const result = await usersCollection.insertOne(user)
@@ -271,13 +280,13 @@ async function run() {
 
 
         //------------- All sellers api
-        app.get('/admin/allSellers/:email', async (req, res) => {
+        app.get('/admin/allSellers', async (req, res) => {
             const query = { role: 'seller' }
             const allSellers = await usersCollection.find(query).toArray()
             res.send(allSellers)
         })
         //------------- All buyers api
-        app.get('/admin/allBuyers/:email', async (req, res) => {
+        app.get('/admin/allBuyers', async (req, res) => {
             const query = { role: 'buyer' }
             const allBuyers = await usersCollection.find(query).toArray()
             res.send(allBuyers)
@@ -307,10 +316,10 @@ async function run() {
             res.send(result)
         })
 
-        app.put('/payments/:id', async(req, res) => {
+        app.put('/payments/:id', async (req, res) => {
             const id = req.params.id
             console.log(id)
-            const filter = {_id: ObjectId(id)}
+            const filter = { _id: ObjectId(id) }
             const options = { upsert: true };
             const updateDoc = {
                 $set: {
@@ -319,6 +328,28 @@ async function run() {
             };
             const updateResult = await productsCollection.updateOne(filter, updateDoc, options)
             res.send(updateResult)
+        })
+
+
+        // ------------------ reportProducts ---------------------
+
+        app.get('/report', async (req, res) => {
+            const query = {}
+            const reportProducts = await reportProductsCollection.find(query).toArray()
+            res.send(reportProducts)
+        })
+
+        app.post('/report', async (req, res) => {
+            const reportProduct = req.body;
+            const reportProducts = await reportProductsCollection.insertOne(reportProduct)
+            res.send(reportProducts)
+        })
+
+        app.delete('/report/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await productsCollection.deleteOne(query)
+            res.send(result)
         })
 
     }
