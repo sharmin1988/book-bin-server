@@ -228,11 +228,14 @@ async function run() {
 
         // ------------------------- Users -------------------------------------------
 
-        app.get('/users/:email', async(req, res) => {
+        app.get('/users/:email', async (req, res) => {
             const email = req.params.email;
-            const query = {email:email}
-            const user = await usersCollection.findOne(query)
-            res.send(user)
+            const query = { email: email }
+            const user = await usersCollection.findOne(query)        
+            if (user) {
+                return res.send(user)
+            }
+            res.send({ noUser: true })
         })
 
         app.post('/users', async (req, res) => {
